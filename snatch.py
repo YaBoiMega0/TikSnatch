@@ -9,7 +9,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import TimeoutException
 
 console = Console()
@@ -67,7 +66,6 @@ def get_privacy_status(username) -> bool:
         return False # Public account
     
 
-
 def extract_video_url(driver, url) -> str | None:
     driver.get(url)
     time.sleep(1)
@@ -81,7 +79,7 @@ def extract_video_url(driver, url) -> str | None:
         return None
 
 
-def get_user_videos(username, isPrivate: bool = False, creds: list[str] = None) -> list[str | None]:
+def get_user_videos(username, isPrivate: bool = False) -> list[str | None]:
     username = username.lstrip('@')
     url = f'https://www.tiktok.com/@{username}'
 
@@ -89,6 +87,10 @@ def get_user_videos(username, isPrivate: bool = False, creds: list[str] = None) 
     driver.get(url)
 
     check_captcha(driver, 5)
+    
+    if isPrivate:
+        console.print("[-]	Press Enter to continue after logging in... ")
+        input()
 
     # Scroll to load all videos
     SCROLL_PAUSE_TIME = 2

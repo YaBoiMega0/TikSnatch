@@ -41,10 +41,7 @@ def download_everything(target_username: str, auto_download: bool = False):
         isPrivate: bool = get_privacy_status(target_username)
         
         if isPrivate:
-            print(Fore.YELLOW, f"\n[-]	Target account is private, you must login or exit.\n")
-
-            os._exit(1)
-            
+            print(Fore.YELLOW, f"\n[-]	Target account is private, you must login to an account that follows this user or exit.")            
         else:
             print(Fore.GREEN, f"\n[+]	Target account is public, proceeding...\n")
     
