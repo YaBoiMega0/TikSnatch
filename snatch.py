@@ -14,29 +14,18 @@ from selenium.webdriver.firefox.options import Options
 console = Console()
 ERRORLEVEL = 0
 
-def get_driver(downloading: bool = False, download_dir: str = None):
-    # Returns a web driver and makes it play nicely with interrupt signals
+
+def get_driver():
     subprocess_Popen = subprocess.Popen
     subprocess.Popen = functools.partial(subprocess_Popen, process_group=0)
-    if downloading:
-        profile = webdriver.FirefoxProfile()
-        profile.set_preference('browser.download.folderList', 2) 
-        profile.set_preference('browser.download.dir', download_dir)
-        profile.set_preference('browser.helperApps.neverAsk.saveToDisk', 'video/mp4,video/mpeg,video/quicktime,video/x-ms-wmv,video/x-flv,video/webm')
-        profile.set_preference('browser.download.manager.showWhenStarting', False)
-        profile.set_preference('browser.download.manager.useWindow', False)
-        profile.set_preference('browser.download.manager.focusWhenStarting', False)
-        profile.set_preference('browser.download.manager.alertOnEXEOpen', False)
-        profile.set_preference('browser.download.manager.showAlertOnComplete', False)
-        profile.set_preference('browser.download.manager.closeWhenDone', True)
-        
-        options = Options()
-        options.profile = profile
-        driver = webdriver.Firefox(options=options.profile)
-    else:
-        driver = webdriver.Firefox()
-    subprocess.Popen = subprocess_Popen
+    driver = webdriver.Firefox()
     return driver
+
+
+def get_privacy_status(driver, username) -> bool:
+    username = username.lstrip('@')
+    driver.get(f'https://www.tiktok.com/@{username}')
+    # Check if the account is private
 
 
 def extract_video_url(driver, url) -> str | None:
@@ -73,8 +62,7 @@ def is_captcha_present(driver) -> bool:
     return False
 
 
-def get_user_videos(username) -> list[str | None]:
-    # Create the link from the username
+def get_user_videos(username, isPrivate: bool = False, creds: list[str] = None) -> list[str | None]:
     username = username.lstrip('@')
     url = f'https://www.tiktok.com/@{username}'
 
@@ -111,20 +99,6 @@ def get_user_videos(username) -> list[str | None]:
     driver.quit()
     return video_urls
 
-
-def download_all(urls, download_dir: str = None, auto_download: bool =False) -> None:
-    driver = get_driver()
-    global filename
-    filename = 0
-    for url in urls:
-        source_url = extract_video_url(driver, url)
-        if source_url:
-            filename += 1
-            console.print(f"[+]	Extracted source URL: {source_url}", style="green")
-            download_video(driver, source_url, download_dir if auto_download else None)
-        else:
-            console.print("[x]	Failed to extract video URL.", style="red")
-    driver.quit()
 
 def download_video(driver, source_url, download_dir: str = None):
     console.print("[+]	Opening in browser...", style="green")
@@ -166,6 +140,20 @@ def download_video(driver, source_url, download_dir: str = None):
         console.print("[-]	Please use your browser's functionality to download the video.", style="yellow")
         input("After downloading the video, press Enter to continue...")
 
+
+def download_all(urls, download_dir: str = None, auto_download: bool =False) -> None:
+    driver = get_driver()
+    global filename
+    filename = 0
+    for url in urls:
+        source_url = extract_video_url(driver, url)
+        if source_url:
+            filename += 1
+            console.print(f"[+]	Extracted source URL: {source_url}", style="green")
+            download_video(driver, source_url, download_dir if auto_download else None)
+        else:
+            console.print("[x]	Failed to extract video URL.", style="red")
+    driver.quit()
 
 
 if __name__ == "__main__":
