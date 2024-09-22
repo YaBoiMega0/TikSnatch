@@ -1,7 +1,10 @@
-import time, os, sys
+import time, os
 from colorama import Fore
-from snatch import download_all, get_user_videos
+from snatch import download_all, get_user_videos, get_privacy_status
 
+# HARDCODED VARIABLES, CHANGE HOW PROGRAM WORKS
+doAutoDownload: bool = True     # Change to False to manually complete all downloads
+skipPrivacyCheck: bool = False  # Change to True to skip privacy check, reduces number of CAPTCHAS if you know the account is public
 
 def typewriter_animation(message):
     for char in message:
@@ -32,39 +35,57 @@ def show_title(instant: bool = False):
 
 
 def download_everything(target_username: str, auto_download: bool = False):
+    global skipPrivacyCheck
+    
+    if not skipPrivacyCheck:
+        isPrivate: bool = get_privacy_status(target_username)
+        
+        if isPrivate:
+            print(Fore.YELLOW, f"\n[-]	Target account is private, you must login or exit.\n")
 
+            os._exit(1)
+            
+        else:
+            print(Fore.GREEN, f"\n[+]	Target account is public, proceeding...\n")
+    
+    urls: list[str | None] = get_user_videos(target_username, isPrivate if isPrivate else False) 
+    if urls:
+        print(Fore.GREEN, '\n[+]	Successfully snatched all video urls\n')
+    else:
+        print(Fore.RED, '\n[x]	An error occurred in snatching video urls\n')
+        os._exit(1)
+    
     download_dir: str = os.path.join(os.getcwd(), target_username)
     if not os.path.exists(download_dir):
         os.makedirs(download_dir)
-    urls: list[str | None] = get_user_videos(target_username)
-    if urls:
-        print(Fore.GREEN, '\n[+]	Successfully snatched all video urls\n')
+    
     download_all(urls, download_dir, auto_download)
     
     time.sleep(1)
-    print(Fore.GREEN, '\n[+]	Snatch Successfull !\n')
+    print(Fore.GREEN, '\n[+]	Snatch Successful !\n')
 
 
 def main():
+    global doAutoDownload
     
     print("[+]	Enter 'list' to read from file accounts.txt")
     target_username = input("[+]	Enter Target Username -->  ")
     if target_username == "list":
         if os.path.exists('accounts.txt') == False:
             print(Fore.RED, "[+]	accounts.txt not found")
-            sys.exit()
+            os._exit(1)
         with open('accounts.txt', 'r') as f:
             lines = f.readlines()
             for line in lines:
                 if line:
-                    download_everything(line.strip(), True) # REMOVE True TO DISABLE AUTO DOWNLOAD
+                    download_everything(line.strip(), doAutoDownload)
                     time.sleep(1)
                     show_title(instant=True)
                 
     else:
-        download_everything(target_username, True) # REMOVE True TO DISABLE AUTO DOWNLOAD
+        download_everything(target_username, doAutoDownload)
 
-     
+
 if __name__ == "__main__":     
     show_title()     
     main()

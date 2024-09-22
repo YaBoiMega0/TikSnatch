@@ -10,9 +10,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.firefox.options import Options
+from selenium.common.exceptions import TimeoutException
 
 console = Console()
-ERRORLEVEL = 0
 
 
 def get_driver():
@@ -21,32 +21,6 @@ def get_driver():
     driver = webdriver.Firefox()
     return driver
 
-
-def get_privacy_status(driver, username) -> bool:
-    username = username.lstrip('@')
-    driver.get(f'https://www.tiktok.com/@{username}')
-    # Check if the account is private
-
-
-def extract_video_url(driver, url) -> str | None:
-    driver.get(url)
-    try:      
-        wait = WebDriverWait(driver, 60)
-        if is_captcha_present(driver):
-            console.print("[-]	Please solve the CAPTCHA in the browser window.", style="yellow")
-            wait.until_not(EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "captcha")]')))
-        wait.until(EC.presence_of_element_located((By.TAG_NAME, 'video')))
-    except Exception as e:
-        console.print(f"[x]	Error or timeout while waiting for video element: {e}", style="red")
-        return None
-    video_element = driver.find_element(By.TAG_NAME, 'video')
-    video_url = driver.execute_script("return arguments[0].currentSrc;", video_element)
-
-    if video_url:
-        return video_url
-    else:
-        console.print("[x]	No video URL found in the video element.", style="red")
-        return None
 
 def is_captcha_present(driver) -> bool:
     captcha_elements = [
@@ -62,6 +36,51 @@ def is_captcha_present(driver) -> bool:
     return False
 
 
+def check_captcha(driver, waitLoad: int = 0) -> bool:
+    time.sleep(waitLoad)
+    try:
+        wait = WebDriverWait(driver, 60)
+        if is_captcha_present(driver):
+            console.print("[-]	Please solve the CAPTCHA in the browser window.", style="yellow")
+            wait.until_not(EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "captcha")]')))
+            console.print("[+]	CAPTCHA solved! Proceeding...", style="green")
+        return True
+    except TimeoutException:
+        console.print(f"[x]	Timeout while waiting for CAPTCHA completion. (You get 60 seconds)", style="red")
+        driver.quit()
+        os._exit(1)
+    
+
+def get_privacy_status(username) -> bool:
+    console.print(f"[+]	Checking privacy status of {username}...", style="green")
+    driver = get_driver()
+    username = username.lstrip('@')
+    driver.get(f'https://www.tiktok.com/@{username}')
+    wait = WebDriverWait(driver, 60)
+    wait.until_not(EC.title_is("Tiktok - Make Your Day"))
+    time.sleep(1)
+    if driver.title.split(".")[0] == "This account is private":
+        driver.quit()
+        return True # Private account
+    else:
+        driver.quit()
+        return False # Public account
+    
+
+
+def extract_video_url(driver, url) -> str | None:
+    driver.get(url)
+    time.sleep(1)
+    video_element = driver.find_element(By.TAG_NAME, 'video')
+    video_url = driver.execute_script("return arguments[0].currentSrc;", video_element)
+
+    if video_url:
+        return video_url
+    else:
+        console.print("[x]	No video URL found in the video element.", style="red")
+        return None
+
+
 def get_user_videos(username, isPrivate: bool = False, creds: list[str] = None) -> list[str | None]:
     username = username.lstrip('@')
     url = f'https://www.tiktok.com/@{username}'
@@ -69,13 +88,7 @@ def get_user_videos(username, isPrivate: bool = False, creds: list[str] = None) 
     driver = get_driver()
     driver.get(url)
 
-    wait = WebDriverWait(driver, 600)  # Keep the webdriver active for up to 10 minutes
-
-    time.sleep(5) # Wait 5 seconds for the page to load
-    # Check for CAPTCHA
-    if is_captcha_present(driver):
-        console.print("[-]	Please solve the CAPTCHA in the browser window.", style="yellow")
-        wait.until_not(EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "captcha")]')))
+    check_captcha(driver, 5)
 
     # Scroll to load all videos
     SCROLL_PAUSE_TIME = 2
@@ -84,12 +97,10 @@ def get_user_videos(username, isPrivate: bool = False, creds: list[str] = None) 
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(SCROLL_PAUSE_TIME)
 
-        if is_captcha_present(driver):
-            console.print("[-]	Please solve the CAPTCHA in the browser window.", style="yellow")
-            wait.until_not(EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "captcha")]')))
+        check_captcha(driver)
+        
         new_height = driver.execute_script("return document.body.scrollHeight")
         if new_height == last_height:
-            console.print(f"[+]	Successfully loaded all videos", style="green")
             break
         last_height = new_height
 
@@ -101,8 +112,6 @@ def get_user_videos(username, isPrivate: bool = False, creds: list[str] = None) 
 
 
 def download_video(driver, source_url, download_dir: str = None):
-    console.print("[+]	Opening in browser...", style="green")
-    driver.get(source_url)
     
     if download_dir:
         # Automatic download procedure
@@ -137,11 +146,13 @@ def download_video(driver, source_url, download_dir: str = None):
             return None
     else:
         # Manual download procedure
+        console.print("[+]	Opening in browser...", style="green")
+        driver.get(source_url)
         console.print("[-]	Please use your browser's functionality to download the video.", style="yellow")
         input("After downloading the video, press Enter to continue...")
 
 
-def download_all(urls, download_dir: str = None, auto_download: bool =False) -> None:
+def download_all(urls, download_dir: str = None, auto_download: bool = False) -> None:
     driver = get_driver()
     global filename
     filename = 0
