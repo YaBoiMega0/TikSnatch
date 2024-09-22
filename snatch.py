@@ -41,7 +41,7 @@ def check_captcha(driver, waitLoad: int = 0) -> bool:
         wait = WebDriverWait(driver, 60)
         if is_captcha_present(driver):
             console.print("[-]	Please solve the CAPTCHA in the browser window.", style="yellow")
-            wait.until_not(EC.presence_of_element_located((By.XPATH, '//div[contains(@class, "captcha")]')))
+            wait.until_not(EC.presence_of_element_located(By.XPATH, '//div[contains(@class, "captcha")]'))
             console.print("[+]	CAPTCHA solved! Proceeding...", style="green")
         return True
     except TimeoutException:
