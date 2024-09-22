@@ -50,8 +50,6 @@ def extract_video_url(driver, url) -> str | None:
     except Exception as e:
         console.print(f"[x]	Error or timeout while waiting for video element: {e}", style="red")
         return None
-
-    # Extract the video URL using JavaScript
     video_element = driver.find_element(By.TAG_NAME, 'video')
     video_url = driver.execute_script("return arguments[0].currentSrc;", video_element)
 
@@ -62,7 +60,6 @@ def extract_video_url(driver, url) -> str | None:
         return None
 
 def is_captcha_present(driver) -> bool:
-    # Check for common CAPTCHA elements
     captcha_elements = [
         (By.XPATH, '//div[contains(@class, "captcha")]'),
         (By.XPATH, '//iframe[contains(@src, "captcha")]'),
@@ -108,7 +105,6 @@ def get_user_videos(username) -> list[str | None]:
             break
         last_height = new_height
 
-    # Collect video URLs from the user's profile page
     video_elements = driver.find_elements(By.XPATH, '//a[contains(@href, "/video/")]')
     video_urls = [elem.get_attribute('href') for elem in video_elements]
     video_urls = list(set(video_urls))
@@ -136,7 +132,7 @@ def download_video(driver, source_url, download_dir: str = None):
     
     if download_dir:
         # Automatic download procedure
-        console.print("[+] Extracting cookies from browser session...", style="green")
+        console.print("[+]	Extracting cookies from browser session...", style="green")
         selenium_cookies = driver.get_cookies()
         session = requests.Session()
         for cookie in selenium_cookies:
@@ -149,7 +145,7 @@ def download_video(driver, source_url, download_dir: str = None):
         try:
             global filename
             file_path = os.path.join(download_dir, f"{filename:04}.mp4")
-            console.print(f"[+] Downloading video {filename:04} to {download_dir}", style="green")
+            console.print(f"[+]	Downloading video {filename:04} to {download_dir}", style="green")
 
             response = session.get(source_url, headers=headers, stream=True)
             response.raise_for_status()
@@ -159,7 +155,7 @@ def download_video(driver, source_url, download_dir: str = None):
                     if chunk:
                         f.write(chunk)
 
-            console.print(f"[+] Video downloaded successfully to {file_path}", style="green")
+            console.print(f"[+]	Video downloaded successfully to {file_path}", style="green")
             return file_path
 
         except Exception as e:
