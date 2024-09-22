@@ -1,6 +1,6 @@
 # What is this?
 Using _selenium_ and some manual user input, this script automatically downloads all videos of one or more TikTok users.
-A rewrite of [TikTokLoader](https://github.com/NicoWeio/TikTokLoader) that... works.
+A rewrite of [TikTokLoader](https://github.com/NicoWeio/TikTokLoader) that works for public and private accounts (with login for privates/friend-only videos).
 
 # Setup and usage
 - Create a python 3.12.1 venv in a folder called ".venv" with `py -m venv .\.venv` then enter the venv by running `.\.venv\Scripts\activate` in the terminal
@@ -10,7 +10,9 @@ A rewrite of [TikTokLoader](https://github.com/NicoWeio/TikTokLoader) that... wo
 
 # How does it work?
 - The script first collects a username or list of several usernames from an accounts.txt file if you want several accounts to be downloaded without having to watch them all
-- It then opens a selenium firefox browser and gets the user to manually complete a CAPTCHA test, this convinces TikTok to trust that browser session, so all the rest of the downloading is done by copying the cookies and headers of that browser session to all requests.
+- It then opens a 'Marionette' firefox browser through selenium and reads the webpage title to figure out if the account is public or private.
+- It gets the user to manually complete a CAPTCHA test, this convinces TikTok to trust that browser session, so all the rest of the downloading is done by copying the cookies and headers of that browser session to all requests.
+- If the account is private there is an additional step where the user is given time to login to a tiktok account that can access the private users videos.
 - It scrolls to the bottom of a users profile page to load every video, and uses the selenium webdriver built in `find_elements` to get the URL of all videos.
 - It then accesses each video one by one, generating a one time access source URL (which is printed to the terminal) and then downloads the video from there using requests (and the verified browser session details)
 - The videos are saved in incremental numbers in a subfolder copying the username inputted.

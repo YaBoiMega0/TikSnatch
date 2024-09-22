@@ -59,37 +59,25 @@ def get_privacy_status(username) -> bool:
     wait.until_not(EC.title_is("Tiktok - Make Your Day"))
     time.sleep(1)
     if driver.title.split(".")[0] == "This account is private":
-        driver.quit()
-        return True # Private account
+        console.print(f"\n[-]	Target account is private, you must login to an account that follows this user or exit.", style="yellow")
+        return driver, True # Private account
     else:
-        driver.quit()
-        return False # Public account
-    
-
-def extract_video_url(driver, url) -> str | None:
-    driver.get(url)
-    time.sleep(1)
-    video_element = driver.find_element(By.TAG_NAME, 'video')
-    video_url = driver.execute_script("return arguments[0].currentSrc;", video_element)
-
-    if video_url:
-        return video_url
-    else:
-        console.print("[x]	No video URL found in the video element.", style="red")
-        return None
+        console.print(f"\n[+]	Target account is public, proceeding...", style="green")
+        return driver, False # Public account
 
 
-def get_user_videos(username, isPrivate: bool = False) -> list[str | None]:
+def get_user_videos(username, driver = None, isPrivate: bool = False) -> list[str | None]:
+    if not driver:
+        driver = get_driver()
     username = username.lstrip('@')
     url = f'https://www.tiktok.com/@{username}'
-
-    driver = get_driver()
-    driver.get(url)
+    if driver.current_url != url:
+        driver.get(url)
 
     check_captcha(driver, 5)
     
     if isPrivate:
-        console.print("[-]	Press Enter to continue after logging in... ")
+        console.print("[-]	Press Enter to continue after logging in... ", style="yellow")
         input()
 
     # Scroll to load all videos
@@ -109,8 +97,20 @@ def get_user_videos(username, isPrivate: bool = False) -> list[str | None]:
     video_elements = driver.find_elements(By.XPATH, '//a[contains(@href, "/video/")]')
     video_urls = [elem.get_attribute('href') for elem in video_elements]
     video_urls = list(set(video_urls))
-    driver.quit()
-    return video_urls
+    return driver, video_urls
+
+
+def extract_video_url(driver, url) -> str | None:
+    driver.get(url)
+    time.sleep(1)
+    video_element = driver.find_element(By.TAG_NAME, 'video')
+    video_url = driver.execute_script("return arguments[0].currentSrc;", video_element)
+
+    if video_url:
+        return video_url
+    else:
+        console.print("[x]	No video URL found in the video element.", style="red")
+        return None
 
 
 def download_video(driver, source_url, download_dir: str = None):
@@ -154,8 +154,9 @@ def download_video(driver, source_url, download_dir: str = None):
         input("After downloading the video, press Enter to continue...")
 
 
-def download_all(urls, download_dir: str = None, auto_download: bool = False) -> None:
-    driver = get_driver()
+def download_all(urls, driver = None, download_dir: str = None, auto_download: bool = False) -> None:
+    if not driver:
+        driver = get_driver()
     global filename
     filename = 0
     for url in urls:
